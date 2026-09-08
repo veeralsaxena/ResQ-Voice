@@ -1,0 +1,9 @@
+livekit>=1.0.12
+livekit-agents[rime,deepgram,silero,openai]~=1.5.18
+livekit-plugins-rime~=1.5.18
+livekit-plugins-deepgram~=1.5.18
+livekit-plugins-silero~=1.5.18
+livekit-plugins-openai~=1.5.18
+python-dotenv>=1.0.1
+aiohttp>=3.10.0
+numpy>=1.26.0
