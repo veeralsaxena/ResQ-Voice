@@ -16,7 +16,9 @@ export async function GET() {
   const deepgramConfigured = configured(process.env.DEEPGRAM_API_KEY);
 
   const llmReady = groqConfigured || openaiConfigured;
-  const llmProvider = groqConfigured ? "Groq (Llama 3.3)" : (openaiConfigured ? "OpenAI (GPT-4o-mini)" : "None");
+  const llmProvider = groqConfigured
+    ? (process.env.GROQ_MODEL?.includes("gpt-oss") || !process.env.GROQ_MODEL ? "Groq (GPT-OSS-20B)" : `Groq (${process.env.GROQ_MODEL})`)
+    : (openaiConfigured ? "OpenAI (GPT-4o-mini)" : "None");
 
   const sttReady = deepgramConfigured || groqConfigured || openaiConfigured;
   const sttProvider = deepgramConfigured ? "Deepgram (Nova-2)" : (groqConfigured ? "Groq Whisper" : (openaiConfigured ? "OpenAI Whisper" : "None"));

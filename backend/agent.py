@@ -105,8 +105,15 @@ def build_llm():
             base_url="http://localhost:11434/v1",
         )
     groq_key = os.getenv("GROQ_API_KEY")
-    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
     if _present(groq_key):
+        raw_model = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b").strip()
+        if raw_model in ("gpt-oss-20b", "gpt oss 20b", "gpt-oss", "oss-20b", "llama-3.3-70b-versatile"):
+            model = "openai/gpt-oss-20b"
+        elif raw_model in ("gpt-oss-120b", "gpt oss 120b"):
+            model = "openai/gpt-oss-120b"
+        else:
+            model = raw_model
+        logger.info("LLM: Groq model %s", model)
         return openai.LLM(
             model=model,
             api_key=groq_key,
