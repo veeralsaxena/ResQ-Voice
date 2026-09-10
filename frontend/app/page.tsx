@@ -6,6 +6,7 @@ import {
   RoomAudioRenderer,
   useRoomContext,
   useVoiceAssistant,
+  useLocalParticipant,
 } from "@livekit/components-react";
 import { ConnectionState, RoomEvent } from "livekit-client";
 import EventStreamLog, { type LogEvent } from "@/components/EventStreamLog";
@@ -130,6 +131,9 @@ function SessionHUD({
 function ConnectedApp({ engine, onDisconnect }: { engine: string; onDisconnect: () => void }) {
   const room = useRoomContext();
   const { state, audioTrack } = useVoiceAssistant();
+  const { localParticipant, isMicrophoneEnabled, microphoneTrack } = useLocalParticipant();
+  const [inputText, setInputText] = useState("");
+  const [micLevel, setMicLevel] = useState(0);
   const [status, setStatus] = useState<SessionStatus>("listening");
   const [latency, setLatency] = useState<number | null>(118);
   const [ttfa, setTtfa] = useState<number | null>(null);
@@ -148,6 +152,62 @@ function ConnectedApp({ engine, onDisconnect }: { engine: string; onDisconnect: 
     },
   ]);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
+
+  // Auto-enable mic upon room join
+  useEffect(() => {
+    if (!isMicrophoneEnabled && localParticipant) {
+      void localParticipant.setMicrophoneEnabled(true);
+    }
+  }, [isMicrophoneEnabled, localParticipant]);
+
+  // Measure microphone volume in real-time
+  useEffect(() => {
+    const stream = microphoneTrack?.track?.mediaStream;
+    if (!stream) return;
+    let animId: number;
+    let audioCtx: AudioContext | null = null;
+    try {
+      audioCtx = new AudioContext();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const node = audioCtx.createAnalyser();
+      node.fftSize = 64;
+      source.connect(node);
+      const data = new Uint8Array(node.frequencyBinCount);
+      const check = () => {
+        node.getByteFrequencyData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) sum += data[i];
+        setMicLevel(Math.round((sum / data.length / 255) * 100));
+        animId = requestAnimationFrame(check);
+      };
+      animId = requestAnimationFrame(check);
+    } catch {
+      /* ignore */
+    }
+    return () => {
+      cancelAnimationFrame(animId);
+      void audioCtx?.close();
+    };
+  }, [microphoneTrack]);
+
+  const sendCommand = async (text: string) => {
+    if (!text.trim() || !localParticipant) return;
+    try {
+      const payload = new TextEncoder().encode(JSON.stringify({ message: text.trim() }));
+      await localParticipant.publishData(payload, { topic: "resq.chat" });
+      setEvents((prev) => [
+        ...prev.slice(-199),
+        {
+          id: `${Date.now()}`,
+          clock: "now",
+          level: text.includes("stop") ? "vad" : "session",
+          message: `COMMAND: "${text.trim()}"`,
+        },
+      ]);
+    } catch (err) {
+      console.error("Failed to send command:", err);
+    }
+  };
 
   useEffect(() => {
     if (!audioTrack) return;
@@ -226,7 +286,7 @@ function ConnectedApp({ engine, onDisconnect }: { engine: string; onDisconnect: 
 
       <main className="mx-auto max-w-5xl space-y-6 px-6 py-8">
         {/* Dynamic Status Display */}
-        <div className={`relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border ${badge.ringColor} p-10 text-center backdrop-blur-xl transition-all duration-300`}>
+        <div className={`relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border ${badge.ringColor} p-8 text-center backdrop-blur-xl transition-all duration-300`}>
           <div className="flex items-center gap-2">
             <span className={`h-2 w-2 rounded-full ${badge.dotColor} ${status === "listening" ? "animate-pulse" : ""}`} />
             <span className={`font-mono text-xs font-semibold tracking-wider ${badge.textColor}`}>
@@ -239,14 +299,102 @@ function ConnectedApp({ engine, onDisconnect }: { engine: string; onDisconnect: 
           </div>
 
           {/* Audio Visualizer */}
-          <div className="relative mt-8 w-full max-w-lg">
+          <div className="relative mt-6 w-full max-w-lg">
             <LiveAudioVisualizer analyser={analyser} active tone={tone} />
           </div>
 
-          <div className="mt-6 flex items-center gap-3 text-[11px] text-zinc-400 font-mono">
-            <span>{room.state === ConnectionState.Connected ? "WebRTC Active" : room.state}</span>
-            <span>·</span>
-            <span>Channel: {room.name || "resq-field-session"}</span>
+          {/* Real-time Microphone Activity Meter & Status Pill */}
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (localParticipant) {
+                  void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
+                }
+              }}
+              className={`flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-mono transition border ${
+                isMicrophoneEnabled
+                  ? "border-emerald-500/30 bg-emerald-500/[0.06] text-emerald-300"
+                  : "border-amber-500/40 bg-amber-500/[0.1] text-amber-300"
+              }`}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  isMicrophoneEnabled
+                    ? micLevel > 5
+                      ? "bg-emerald-400 scale-125"
+                      : "bg-emerald-500"
+                    : "bg-amber-400"
+                } transition-transform`}
+              />
+              <span>
+                {isMicrophoneEnabled
+                  ? `Mic: Active ${micLevel > 3 ? `(Level: ${micLevel}%)` : "(Listening)"}`
+                  : "Mic Muted · Click to Enable"}
+              </span>
+            </button>
+
+            <span className="text-zinc-600">·</span>
+
+            <div className="flex items-center gap-2 text-[11px] text-zinc-400 font-mono">
+              <span>WebRTC: Connected</span>
+              <span>·</span>
+              <span>Room: {room.name || "resq-session"}</span>
+            </div>
+          </div>
+
+          {/* Quick Clickable Spoken Prompts & Command Bar */}
+          <div className="mt-6 w-full max-w-xl border-t border-white/[0.06] pt-4">
+            <div className="text-center text-[11px] text-zinc-400 font-medium mb-2.5">
+              Spoken or Clickable Quick Prompts (Instant test of tool fencing & Rime audio):
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => void sendCommand("Start CPR compressions. Keep the count for me.")}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-zinc-300 hover:text-white hover:bg-white/[0.08] transition"
+              >
+                1. "Start CPR compressions"
+              </button>
+              <button
+                type="button"
+                onClick={() => void sendCommand("Look up Epinephrine for 70 kilograms.")}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-zinc-300 hover:text-white hover:bg-white/[0.08] transition"
+              >
+                2. "Look up Epinephrine for 70 kg"
+              </button>
+              <button
+                type="button"
+                onClick={() => void sendCommand("Wait, stop! Make it 40 kilograms!")}
+                className="rounded-full border border-amber-500/30 bg-amber-500/[0.08] px-3 py-1 text-xs text-amber-300 hover:bg-amber-500/20 transition font-medium"
+              >
+                3. "Wait, stop! Make it 40 kg!"
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!inputText.trim()) return;
+                void sendCommand(inputText.trim());
+                setInputText("");
+              }}
+              className="mt-3 flex gap-2"
+            >
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Type a triage command here (or speak into mic)..."
+                className="flex-1 rounded-full border border-white/10 bg-white/[0.03] px-4 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:border-white/30 focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="rounded-full bg-white px-4 py-1.5 text-xs font-medium text-black hover:bg-zinc-200 transition"
+              >
+                Send
+              </button>
+            </form>
           </div>
         </div>
 

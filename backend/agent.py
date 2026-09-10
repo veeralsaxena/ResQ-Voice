@@ -348,6 +348,23 @@ async def resq_session(ctx: JobContext) -> None:
         }
     )
 
+    @ctx.room.on("data_received")
+    def on_data_received(data_packet) -> None:
+        topic = getattr(data_packet, "topic", None)
+        if topic in ("resq.chat", "lk-chat-topic", None):
+            try:
+                raw = data_packet.data.decode("utf-8")
+                try:
+                    payload = json.loads(raw)
+                    text = payload.get("message") or payload.get("text") or raw
+                except Exception:
+                    text = raw
+                if text and isinstance(text, str):
+                    logger.info("Received text/chat command: %s", text)
+                    asyncio.create_task(session.generate_reply(user_input=text, input_modality="text"))
+            except Exception as e:
+                logger.warning("Error handling data packet: %s", e)
+
     await session.generate_reply(
         instructions=(
             "One short greeting only. Say you are ResQ-Voice. Ask what they need. "
