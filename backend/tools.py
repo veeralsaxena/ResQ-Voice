@@ -100,9 +100,8 @@ async def lookup_dosage(
             "route": payload["route"],
             "note": payload["note"],
             "spoken": (
-                f"Right. Simulated {med} for {patient_weight_kg} kilograms is "
-                f"{round(dose, 2)} milligrams {payload['route']}. "
-                f"Confirm locally. This is training data only."
+                f"Understood. For {patient_weight_kg} kilograms, {med} dose is "
+                f"{round(dose, 2)} milligrams {payload['route']}."
             ),
         }
 
@@ -112,13 +111,13 @@ async def lookup_dosage(
         return {
             "ok": False,
             "cancelled": True,
-            "spoken": "Understood. Dropping that dose lookup.",
+            "spoken": "Understood. Previous dose lookup cancelled.",
         }
     except StaleToolResult:
         return {
             "ok": False,
             "stale": True,
-            "spoken": "That old dose is gone. Tell me the weight again if you still need it.",
+            "spoken": "Previous dose discarded. What is the updated weight?",
         }
 
 
