@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -6,56 +6,92 @@
 
 :root {
   color-scheme: dark;
+  --bg-primary: #050507;
+  --surface-card: #0d0d11;
+  --surface-border: rgba(255, 255, 255, 0.07);
 }
 
 html,
 body {
-  background: #0b0f0e;
-  color: #e8eee9;
+  background: var(--bg-primary);
+  color: #ededef;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: #e8b86d;
-  color: #0b0f0e;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }
 
-.btn-primary {
-  @apply inline-flex items-center justify-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-semibold text-night transition hover:bg-[#f0c98a] disabled:opacity-50;
+/* Apple-style subtle glassmorphism */
+.glass-panel {
+  background: rgba(18, 18, 22, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.btn-ghost {
-  @apply inline-flex items-center justify-center gap-2 rounded-full border border-line bg-transparent px-5 py-2.5 text-sm text-mist transition hover:border-amber/40 hover:text-amber;
+.glass-card {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease;
 }
 
-@keyframes pulse-ring {
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Minimalist scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* Minimal pulsing ring for Siri / dynamic status */
+@keyframes ring-pulse {
   0% {
-    transform: scale(0.94);
-    opacity: 0.55;
-  }
-  70% {
-    transform: scale(1.08);
-    opacity: 0.12;
-  }
-  100% {
-    transform: scale(0.94);
-    opacity: 0.55;
-  }
-}
-
-.pulse-ring {
-  animation: pulse-ring 1.7s ease-out infinite;
-}
-
-@keyframes flash-cut {
-  0%,
-  100% {
-    box-shadow: inset 0 0 0 0 rgba(224, 122, 95, 0);
+    transform: scale(0.96);
+    opacity: 0.6;
   }
   50% {
-    box-shadow: inset 0 0 0 2px rgba(224, 122, 95, 0.85);
+    transform: scale(1.05);
+    opacity: 0.15;
+  }
+  100% {
+    transform: scale(0.96);
+    opacity: 0.6;
   }
 }
 
-.flash-cut {
-  animation: flash-cut 0.22s linear 5;
+.ring-pulse {
+  animation: ring-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes flash-bargein {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+  50% {
+    box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.6), 0 0 40px rgba(239, 68, 68, 0.15);
+  }
+}
+
+.flash-bargein {
+  animation: flash-bargein 0.3s ease-in-out 3;
 }

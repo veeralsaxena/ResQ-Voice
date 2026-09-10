@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { spawn } from "child_process";
 import path from "path";
 
+import fs from "fs";
+
 export const dynamic = "force-dynamic";
 
 export async function POST() {
   const script = path.resolve(process.cwd(), "..", "backend", "tests", "benchmark_barge_in.py");
-  const python = process.platform === "win32" ? "python" : "python3";
+  const venvPython = path.resolve(process.cwd(), "..", ".venv", "bin", "python");
+  const python = fs.existsSync(venvPython) ? venvPython : (process.platform === "win32" ? "python" : "python3");
 
   const result = await new Promise<{ code: number; stdout: string; stderr: string }>((resolve) => {
     const child = spawn(python, [script, "--trials", "3", "--json"], {

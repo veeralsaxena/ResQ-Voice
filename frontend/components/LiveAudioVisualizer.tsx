@@ -17,33 +17,59 @@ export default function LiveAudioVisualizer({ analyser, active, tone }: Props) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     let raf = 0;
-    const bins = 42;
-    const data = new Uint8Array(bins);
-    const color = tone === "interrupt" ? "#e07a5f" : tone === "speak" ? "#e8b86d" : "#7dba8a";
+    const barsCount = 48;
+    const energy = new Uint8Array(barsCount);
 
     const draw = () => {
-      const { width, height } = canvas;
-      ctx.clearRect(0, 0, width, height);
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
       if (analyser && active) {
         const buffer = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(buffer);
-        for (let i = 0; i < bins; i += 1) {
-          data[i] = buffer[Math.floor((i / bins) * buffer.length)] || 0;
+        for (let i = 0; i < barsCount; i += 1) {
+          const sample = buffer[Math.floor((i / barsCount) * (buffer.length * 0.75))] || 0;
+          energy[i] = sample;
         }
       } else {
-        for (let i = 0; i < bins; i += 1) {
-          data[i] = Math.max(10, data[i] * 0.88);
+        const time = performance.now() * 0.003;
+        for (let i = 0; i < barsCount; i += 1) {
+          if (active) {
+            const idleWave = Math.sin(time + i * 0.25) * 14 + 18;
+            energy[i] = Math.max(8, idleWave);
+          } else {
+            energy[i] = Math.max(4, energy[i] * 0.9);
+          }
         }
       }
-      const gap = 4;
-      const barW = (width - gap * (bins - 1)) / bins;
-      data.forEach((v, i) => {
-        const h = Math.max(6, (v / 255) * height * 0.92);
-        ctx.globalAlpha = 0.4 + (v / 255) * 0.6;
-        ctx.fillStyle = color;
-        ctx.fillRect(i * (barW + gap), (height - h) / 2, barW, h);
-      });
-      ctx.globalAlpha = 1;
+
+      const barWidth = 3.5;
+      const gap = (w - barsCount * barWidth) / (barsCount - 1);
+
+      for (let i = 0; i < barsCount; i += 1) {
+        const val = energy[i] / 255;
+        const barHeight = Math.max(4, val * (h * 0.85));
+        const x = i * (barWidth + gap);
+        const y = (h - barHeight) / 2;
+
+        if (tone === "interrupt") {
+          ctx.fillStyle = "rgba(244, 63, 94, 0.95)";
+        } else if (tone === "speak") {
+          ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + val * 0.6})`;
+        } else if (tone === "listen") {
+          ctx.fillStyle = `rgba(161, 161, 170, ${0.35 + val * 0.65})`;
+        } else {
+          ctx.fillStyle = "rgba(113, 113, 122, 0.3)";
+        }
+
+        // Apple style rounded capsule bars
+        ctx.beginPath();
+        const r = barWidth / 2;
+        ctx.roundRect(x, y, barWidth, barHeight, [r, r, r, r]);
+        ctx.fill();
+      }
+
       raf = requestAnimationFrame(draw);
     };
 
@@ -51,5 +77,12 @@ export default function LiveAudioVisualizer({ analyser, active, tone }: Props) {
     return () => cancelAnimationFrame(raf);
   }, [analyser, active, tone]);
 
-  return <canvas ref={ref} width={720} height={110} className="h-24 w-full" />;
+  return (
+    <canvas
+      ref={ref}
+      width={760}
+      height={80}
+      className="h-20 w-full"
+    />
+  );
 }

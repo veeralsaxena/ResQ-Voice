@@ -96,6 +96,14 @@ def _present(value: str | None) -> bool:
 
 
 def build_llm():
+    if os.getenv("USE_LOCAL_LLM", "").lower() in ("true", "1", "yes"):
+        model = os.getenv("OLLAMA_MODEL", "qwen3:8b")
+        logger.info("LLM: Local Ollama OSS model %s", model)
+        return openai.LLM(
+            model=model,
+            api_key="ollama",
+            base_url="http://localhost:11434/v1",
+        )
     groq_key = os.getenv("GROQ_API_KEY")
     model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
     if _present(groq_key):
@@ -119,8 +127,12 @@ def build_stt():
             api_key=groq_key,
             base_url=GROQ_BASE_URL,
         )
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if _present(openai_key):
+        logger.info("STT: OpenAI whisper-1")
+        return openai.STT(model="whisper-1")
     raise RuntimeError(
-        "Set DEEPGRAM_API_KEY or GROQ_API_KEY for speech recognition before the demo."
+        "Set DEEPGRAM_API_KEY, GROQ_API_KEY, or OPENAI_API_KEY for speech recognition before the demo."
     )
 
 
@@ -132,21 +144,14 @@ def _load_vad():
 
 
 def build_tts() -> rime.TTS:
-    kwargs = dict(
+    return rime.TTS(
         model=RIME_MODEL,
         speaker=RIME_SPEAKER,
         speed_alpha=1.0,
         use_websocket=True,
         segment="immediate",
+        lang="eng",
     )
-    # lang / base_url names vary slightly across plugin versions
-    try:
-        return rime.TTS(**kwargs, lang=RIME_LANG, base_url=RIME_ENDPOINT)
-    except TypeError:
-        try:
-            return rime.TTS(**kwargs, language=RIME_LANG)
-        except TypeError:
-            return rime.TTS(model=RIME_MODEL, speaker=RIME_SPEAKER, use_websocket=True)
 
 
 class ResQAgent(Agent):
@@ -337,8 +342,8 @@ async def resq_session(ctx: JobContext) -> None:
                 "streaming": "websocket",
             },
             "stt": {
-                "provider": "deepgram" if _present(os.getenv("DEEPGRAM_API_KEY")) else "groq-whisper",
-                "model": DEEPGRAM_MODEL if _present(os.getenv("DEEPGRAM_API_KEY")) else os.getenv("GROQ_STT_MODEL", "whisper-large-v3-turbo"),
+                "provider": "deepgram" if _present(os.getenv("DEEPGRAM_API_KEY")) else ("groq-whisper" if _present(os.getenv("GROQ_API_KEY")) else "openai-whisper"),
+                "model": DEEPGRAM_MODEL if _present(os.getenv("DEEPGRAM_API_KEY")) else (os.getenv("GROQ_STT_MODEL", "whisper-large-v3-turbo") if _present(os.getenv("GROQ_API_KEY")) else "whisper-1"),
             },
             "llm": {
                 "provider": "groq" if _present(os.getenv("GROQ_API_KEY")) else "openai",
