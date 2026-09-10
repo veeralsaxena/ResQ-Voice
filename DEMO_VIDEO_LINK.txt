@@ -1,0 +1,21 @@
+================================================================================
+ResQ-Voice — Official Submission Links & Demonstration
+DataForge 2026 Hackathon | Rime Track: "Build a Voice-Native Product"
+================================================================================
+
+DEMO VIDEO LINK (Google Drive):
+https://drive.google.com/drive/folders/1N1Hrb3KHFraBtQaqh7jtXgo1Vu3mFidc?usp=sharing
+
+GITHUB REPOSITORY LINK:
+https://github.com/veeralsaxena/ResQ-Voice
+
+--------------------------------------------------------------------------------
+SUBMISSION CHECKLIST VERIFICATION:
+--------------------------------------------------------------------------------
+1. Target User & Necessity: Solo field paramedic performing CPR chest compressions.
+   Screen-less, hands-busy operation where voice is the sole interface.
+2. Hard Voice Problem: Sub-150ms barge-in interruption & medical tool fencing (backend/fence.py).
+3. Active Speech Provider: Rime mistv3 / astra over LiveKit 24kHz WebRTC stream.
+4. Evidence & Repeatable Test: RIME_EVIDENCE.md with 10-trial benchmark (10/10 PASS).
+5. Secret Hygiene: Zero leaked secrets. Placeholders in .env.example.
+================================================================================
