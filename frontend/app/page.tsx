@@ -422,6 +422,27 @@ export default function Dashboard() {
             >
               {stressing ? "Running..." : "Run Repeatable Benchmark"}
             </button>
+
+            <a
+              href="https://drive.google.com/drive/folders/1N1Hrb3KHFraBtQaqh7jtXgo1Vu3mFidc?usp=sharing"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/[0.05] px-5 py-3 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/10"
+            >
+              <svg className="w-4 h-4 text-emerald-400 fill-current" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              <span>Watch Demo Video</span>
+            </a>
+
+            <a
+              href="https://github.com/veeralsaxena/ResQ-Voice"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08]"
+            >
+              <span>GitHub</span>
+            </a>
           </div>
 
           {/* Benchmark Results Display */}
@@ -545,6 +566,42 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+
+      <footer className="border-t border-white/[0.06] py-8 text-center text-xs text-zinc-500">
+        <div className="mx-auto flex max-w-5xl flex-col sm:flex-row items-center justify-between gap-4 px-6">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-zinc-400">ResQ-Voice</span>
+            <span>·</span>
+            <span>DataForge 2026 Hackathon · Rime Track</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <a
+              href="https://drive.google.com/drive/folders/1N1Hrb3KHFraBtQaqh7jtXgo1Vu3mFidc?usp=sharing"
+              target="_blank"
+              rel="noreferrer"
+              className="text-zinc-400 hover:text-white transition"
+            >
+              Demo Video
+            </a>
+            <a
+              href="https://github.com/veeralsaxena/ResQ-Voice"
+              target="_blank"
+              rel="noreferrer"
+              className="text-zinc-400 hover:text-white transition"
+            >
+              GitHub
+            </a>
+            <a
+              href="https://docs.rime.ai"
+              target="_blank"
+              rel="noreferrer"
+              className="text-zinc-400 hover:text-white transition"
+            >
+              Rime Docs
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

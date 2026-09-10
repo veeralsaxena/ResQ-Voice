@@ -7,7 +7,7 @@
 [![Repository](https://img.shields.io/badge/GitHub-ResQ--Voice-black)](https://github.com/veeralsaxena/ResQ-Voice)
 
 > **Repository**: [https://github.com/veeralsaxena/ResQ-Voice](https://github.com/veeralsaxena/ResQ-Voice)  
-> **Demo Video**: [Insert your demo video link here — YouTube / Loom / Google Drive]
+> **Demo Video**: [https://drive.google.com/drive/folders/1N1Hrb3KHFraBtQaqh7jtXgo1Vu3mFidc?usp=sharing](https://drive.google.com/drive/folders/1N1Hrb3KHFraBtQaqh7jtXgo1Vu3mFidc?usp=sharing)
 
 ---
 
