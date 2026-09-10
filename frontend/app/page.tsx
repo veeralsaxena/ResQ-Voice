@@ -351,10 +351,10 @@ function ConnectedApp({ engine, onDisconnect }: { engine: string; onDisconnect: 
             <div className="flex flex-wrap items-center justify-center gap-2">
               <button
                 type="button"
-                onClick={() => void sendCommand("Start CPR compressions. Keep the count for me.")}
+                onClick={() => void sendCommand("Start CPR along with me, count with me.")}
                 className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-zinc-300 hover:text-white hover:bg-white/[0.08] transition"
               >
-                1. "Start CPR compressions"
+                1. "Start CPR and count with me"
               </button>
               <button
                 type="button"
@@ -368,7 +368,14 @@ function ConnectedApp({ engine, onDisconnect }: { engine: string; onDisconnect: 
                 onClick={() => void sendCommand("Wait, stop! Make it 40 kilograms!")}
                 className="rounded-full border border-amber-500/30 bg-amber-500/[0.08] px-3 py-1 text-xs text-amber-300 hover:bg-amber-500/20 transition font-medium"
               >
-                3. "Wait, stop! Make it 40 kg!"
+                3. "Wait, stop! Make it 40 kg!" (Barge-In)
+              </button>
+              <button
+                type="button"
+                onClick={() => void sendCommand("Stop CPR cadence.")}
+                className="rounded-full border border-rose-500/30 bg-rose-500/[0.08] px-3 py-1 text-xs text-rose-300 hover:bg-rose-500/20 transition font-medium"
+              >
+                4. "Stop CPR"
               </button>
             </div>
 

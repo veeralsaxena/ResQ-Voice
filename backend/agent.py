@@ -64,9 +64,14 @@ Write for the ear, not the page.
 - If interrupted, drop the prior thought immediately. Do not mention the interruption.
 - Whenever the medic specifies or changes a patient weight or medication (e.g. "make it 40 kg", "forty kilograms", "change to 40"), immediately call lookup_dosage and speak the resulting dosage directly.
 - Always provide the calculated dosage immediately. Never preach, never lecture, never say "as an AI" or "this is a simulation". Speak direct clinical numbers.
-- For protocol checks (airway, CPR, bleeding), call cue_protocol.
+- When the medic asks to start CPR, count compressions, count with them, or keep cadence (e.g. "start CPR along with me, count with me", "count CPR", "start compressions"), immediately call start_cpr_cadence.
+- When the medic says "stop CPR", "stop counting", "pause CPR", or "pulse check", immediately call stop_cpr_cadence.
+- For other protocol checks (airway, bleeding, scene), call cue_protocol.
 
 Examples:
+Medic: "Start CPR along with me, count with me."
+You: (call start_cpr_cadence) "Starting CPR cadence now. Match my count."
+
 Medic: "Look up epinephrine for 70 kilograms."
 You: (call lookup_dosage for 70kg) "Understood. For 70 kilograms, epinephrine is 0.5 milligrams intramuscular."
 
@@ -157,6 +162,75 @@ class ResQAgent(Agent):
         self.fence = fence
         self.bus = bus
         self.playback = playback
+        self.active_session: AgentSession | None = None
+        self.cpr_active = False
+        self.cpr_task: asyncio.Task | None = None
+
+    def stop_cpr(self) -> None:
+        self.cpr_active = False
+        if self.cpr_task and not self.cpr_task.done():
+            self.cpr_task.cancel()
+            self.cpr_task = None
+
+    async def _cpr_cadence_worker(self) -> None:
+        try:
+            await self.bus.emit({
+                "type": "protocol",
+                "event": "cpr_cadence_started",
+                "rate_bpm": 110,
+            })
+            cycle = 1
+            while self.cpr_active:
+                cadence_groups = [
+                    "One, two, three, four, five, six, seven, eight, nine, ten.",
+                    "Eleven, twelve, thirteen, fourteen, fifteen, sixteen, seventeen, eighteen, nineteen, twenty.",
+                    "Twenty-one, twenty-two, twenty-three, twenty-four, twenty-five, twenty-six, twenty-seven, twenty-eight, twenty-nine, thirty. Give two breaths.",
+                ]
+                for group in cadence_groups:
+                    if not self.cpr_active:
+                        break
+                    sess = self.active_session
+                    if sess:
+                        await sess.say(group, allow_interruptions=True)
+                    await asyncio.sleep(0.35)
+
+                cycle += 1
+                if self.cpr_active:
+                    await self.bus.emit({
+                        "type": "protocol",
+                        "event": "cpr_cycle_completed",
+                        "cycle": cycle,
+                    })
+                    await asyncio.sleep(1.0)
+                    if self.cpr_active and self.active_session:
+                        await self.active_session.say(f"Cycle {cycle}.", allow_interruptions=True)
+                        await asyncio.sleep(0.35)
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.warning("CPR cadence worker: %s", e)
+        finally:
+            self.cpr_active = False
+
+    @function_tool()
+    async def start_cpr_cadence(self, context: RunContext) -> str:
+        """Start continuous rhythmic CPR compression counting (1 to 30 with breath cues) at 100-110 bpm.
+        Counts continuously in cycles until the medic interrupts or says stop.
+        """
+        self.stop_cpr()
+        self.cpr_active = True
+        self.cpr_task = asyncio.create_task(self._cpr_cadence_worker())
+        return "Starting CPR cadence at 110 beats per minute. Match my count."
+
+    @function_tool()
+    async def stop_cpr_cadence(self, context: RunContext) -> str:
+        """Stop CPR counting or metronome cadence immediately when the medic says stop, pause, or pulse check."""
+        self.stop_cpr()
+        await self.bus.emit({
+            "type": "protocol",
+            "event": "cpr_cadence_stopped",
+        })
+        return "CPR cadence stopped. Standing by."
 
     @function_tool()
     async def lookup_dosage(
@@ -201,6 +275,9 @@ class ResQAgent(Agent):
             step: One of scene, airway, breathing, circulation, disability,
                 exposure, cpr, bleed.
         """
+        step_lower = step.strip().lower()
+        if "cpr" in step_lower:
+            return await self.start_cpr_cadence(context)
         result = await protocol_step(step)
         return result["spoken"]
 
@@ -238,11 +315,18 @@ async def resq_session(ctx: JobContext) -> None:
             }
         ),
     )
+    agent.active_session = session
 
     barge_in_lock = asyncio.Lock()
 
     async def handle_barge_in(source: str) -> None:
         async with barge_in_lock:
+            if agent.cpr_active:
+                agent.stop_cpr()
+                await bus.emit({
+                    "type": "protocol",
+                    "event": "cpr_cadence_interrupted",
+                })
             vad_trigger = time.monotonic()
             await bus.emit(
                 {
@@ -274,7 +358,7 @@ async def resq_session(ctx: JobContext) -> None:
     def on_user_state(ev: UserStateChangedEvent) -> None:
         if ev.new_state != "speaking":
             return
-        if not (agent_speaking or playback.speaking or fence.has_inflight):
+        if not (agent_speaking or playback.speaking or fence.has_inflight or agent.cpr_active):
             return
         asyncio.create_task(handle_barge_in("user_state_changed"))
 

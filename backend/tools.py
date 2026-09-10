@@ -130,7 +130,7 @@ async def protocol_step(step: str) -> dict[str, Any]:
         "circulation": "Start compressions. Hard and fast. I'll keep the count if you want.",
         "disability": "Check pupils and response. Keep talking to me.",
         "exposure": "Expose to find bleeding. Keep them warm.",
-        "cpr": "Compressions at 100 to 120 a minute. I'll stay quiet unless you ask.",
+        "cpr": "Starting CPR cadence at 110 beats per minute. Match my count.",
         "bleed": "Direct pressure. Pack the wound. Tell me when the bleeding slows.",
     }
     key = step.strip().lower()
