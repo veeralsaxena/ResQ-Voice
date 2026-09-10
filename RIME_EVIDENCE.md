@@ -1,5 +1,8 @@
 # RIME_EVIDENCE
 
+> **Repository**: [https://github.com/veeralsaxena/ResQ-Voice](https://github.com/veeralsaxena/ResQ-Voice)  
+> **Demo Video**: [Insert your demo video link here — YouTube / Loom / Google Drive]
+
 ## Claim
 
 **ResQ-Voice truncates Rime playback on medic barge-in, cancels in-flight tool work, and never speaks a stale dosage as current.**
